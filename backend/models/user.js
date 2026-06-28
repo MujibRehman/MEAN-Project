@@ -1,11 +1,40 @@
-const mongoose = require('mongoose');
-const uniqueValidator = require('mongoose-unique-validator');
+const db = require("../database");
 
-const userSchema = mongoose.Schema({
-  email:{type:String, required:true, unique: true},
-  password:{type:String, required:true},
-});
+class User {
+  constructor({ email, password }) {
+    this.email = email;
+    this.password = password;
+  }
 
-userSchema.plugin(uniqueValidator);
+  async save() {
+    const result = await db.run(
+      "INSERT INTO users (email, password) VALUES (?, ?)",
+      [this.email, this.password]
+    );
 
-module.exports = mongoose.model('User', userSchema);
+    return {
+      _id: String(result.lastID),
+      email: this.email,
+      password: this.password
+    };
+  }
+
+  static async findOne(filter) {
+    const row = await db.get(
+      "SELECT id, email, password FROM users WHERE email = ?",
+      [filter.email]
+    );
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      _id: String(row.id),
+      email: row.email,
+      password: row.password
+    };
+  }
+}
+
+module.exports = User;

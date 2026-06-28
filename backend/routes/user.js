@@ -6,58 +6,60 @@ const User = require("../models/user");
 
 const router = express.Router()
 
-router.post("/signup", (req, res, next) => {
-  bcrypt.hash(req.body.passowrd, 10)
-  .then(hash => {
+router.post("/signup", async (req, res, next) => {
+  try {
+    const hash = await bcrypt.hash(req.body.password, 10);
     const user = new User({
       email: req.body.email,
-      passowrd: hash
+      password: hash
     });
-    user.save()
-    .then(result => {
-      res.status(201).json({
-        message: "User Created",
-        result: result,
-      });
-    })
-    .catch(err => {
-      res.status(500).json({
-        error: err
-      });
+    const result = await user.save();
+
+    res.status(201).json({
+      message: "User Created",
+      result: result,
     });
-  });
+  } catch (err) {
+    const statusCode = err && err.message && err.message.includes("UNIQUE")
+      ? 409
+      : 500;
+    res.status(statusCode).json({
+      error: err
+    });
+  }
 });
 
-router.post("/login", (req, res, next) => {
-  let fetchedUser;
-  User.find({email: req.body.email})
-  .then(user => {
-    if(!user){
+router.post("/login", async (req, res, next) => {
+  try {
+    const fetchedUser = await User.findOne({email: req.body.email});
+
+    if(!fetchedUser){
       return res.status(401).json({
         message: "Auth Failed"
       });
-    };
-    fetchedUser = user;
-    return bcrypt.compare(req.body.password, user.password);
-  })
-  .then(result => {
+    }
+
+    const result = await bcrypt.compare(req.body.password, fetchedUser.password);
+
     if(!result){
       return res.status(401).json({
         message: "Auth Failed"
       });
-    };
-    const token = jwt.sign({email:user.email, userID: user_id}, 'secret_this_should_be_longer', {expiresIn: "1h" });
+    }
+
+    const token = jwt.sign(
+      {email: fetchedUser.email, userId: fetchedUser._id},
+      process.env.JWT_SECRET || 'dev_secret_change_me',
+      {expiresIn: "1h" }
+    );
     res.status(201).json({
       token: token,
     });
-  })
-  .catch(err => {
-    if(!result){
-      return res.status(401).json({
-        message: "Auth Failed"
-      });
-    };
-  });
+  } catch (error) {
+    return res.status(401).json({
+      message: "Auth Failed"
+    });
+  }
 });
 
 module.exports = router;

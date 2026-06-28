@@ -1,24 +1,23 @@
 const express=require('express');
 const bodyParser=require('body-parser');
-const mongoose=require("mongoose");
 const path=require("path");
+const db = require("./database");
 
 const postsRoutes = require("./routes/posts");
 const userRoutes = require("./routes/user");
 
 var cors = require('cors')
 
-const { createShorthandPropertyAssignment } = require('typescript');
-
 const app=express();
 
-mongoose.connect("mongodb+srv://admin:123@cluster0.5a8uy.mongodb.net/")
-.then(()=>{
-  console.log("Connected to database");
-})
-.catch(()=>{
+db.initializeDatabase()
+  .then(() => {
+    console.log(`Connected to SQLite database at ${db.databasePath}`);
+  })
+  .catch((error) => {
     console.log("Connection to database failed");
-})
+    console.error(error.message);
+  });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
@@ -29,10 +28,10 @@ app.use((req, res, next)=>{
   res.setHeader("Access-Control-Allow-Origin","*");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
     );
   res.setHeader(
-    "Access-Control-Allow-Method",
+    "Access-Control-Allow-Methods",
     "GET, POST, PATCH, PUT, DELETE, OPTIONS"
   );
   next();

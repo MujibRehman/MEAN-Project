@@ -5,11 +5,11 @@ a {
 
 ul{
   list-style: none;
-  padding: none;
-  margin: none;
+  padding: 0;
+  margin: 0;
   display: flex;
 }
 
-spacer{
+.spacer{
   flex: 1 1 auto;
 }

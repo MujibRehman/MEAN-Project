@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { Post } from '../post.model';
+import { Router } from '@angular/router';
 import { PostsService } from '../posts.service';
 import {mimeType} from "./mimi-type.validator";
 
@@ -17,7 +17,11 @@ export class PostCreateComponent implements OnInit {
   isLoading = false;
   form: any;
   imagePreview: any;
-  constructor(public postsService:PostsService, public route: ActivatedRoute) { }
+  constructor(
+    public postsService: PostsService,
+    public route: ActivatedRoute,
+    private router: Router
+  ) { }
 
   ngOnInit(): void {
     this.form = new FormGroup({
@@ -63,16 +67,37 @@ export class PostCreateComponent implements OnInit {
     }
     this.isLoading=true;
     if(this.mode==='create'){
-      this.postsService.addPost(this.form.value.title,this.form.value.content, this.form.value.image);
+      this.postsService
+        .addPost(this.form.value.title, this.form.value.content, this.form.value.image)
+        .subscribe({
+          next: () => {
+            this.isLoading = false;
+            this.form.reset();
+            this.router.navigate(['/']);
+          },
+          error: () => {
+            this.isLoading = false;
+          }
+        });
     } else{
-      this.postsService.updatePost(
-        this.postId,
-        this.form.value.title,
-        this.form.value.content,
-        this.form.value.image
-      );
+      this.postsService
+        .updatePost(
+          this.postId,
+          this.form.value.title,
+          this.form.value.content,
+          this.form.value.image
+        )
+        .subscribe({
+          next: () => {
+            this.isLoading = false;
+            this.form.reset();
+            this.router.navigate(['/']);
+          },
+          error: () => {
+            this.isLoading = false;
+          }
+        });
     }
-    this.form.resetForm();
   }
 
 }

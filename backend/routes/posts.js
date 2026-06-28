@@ -1,10 +1,8 @@
 const express = require("express");
 const multer = require("multer");
-const { single } = require("rxjs");
-const { createShorthandPropertyAssignment } = require("typescript");
-const { create } = require("../models/post");
 
 const Post = require('../models/post');
+const checkAuth = require("../middleware/check-auth");
 
 const router = express.Router();
 
@@ -17,11 +15,11 @@ const MIMIE_TYPE_MAP = {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const isValid = MIMIE_TYPE_MAP[file.mimetype];
-    let error = new Error("Invalid mime type");
-    if (isValid){
-      error = null;
-    }
-    cb(null, "backend/images");
+  let error = new Error("Invalid mime type");
+  if (isValid){
+    error = null;
+  }
+  cb(error, "backend/images");
   },
   filename: (req, file, cb) => {
     const name = file.originalname.toLowerCase().split(' ').join('-');
@@ -30,62 +28,71 @@ const storage = multer.diskStorage({
   }
 })
 
-router.post("", multer({storage: storage}).single("image"), (req,res,next)=>{
+router.post("", checkAuth, multer({storage: storage}).single("image"), (req,res,next)=>{
+  if (!req.file) {
+    return res.status(400).json({ message: "Image upload failed" });
+  }
+
   const url = req.protocol + '://' + req.get("host");
   const post=new Post({
     title: req.body.title,
     content: req.body.content,
     imagePath: url + "/images/" + req.file.filename
   });
-  console.log(post);
   post.save().then(createdPost=>{
-    console.log(createdPost);
     res.status(201).json({
       message:'Post added successfully',
       post: {
         ...createdPost,
         id: createdPost._id
       }
-    })
+    });
+  }).catch(() => {
+    res.status(500).json({ message: "Creating a post failed" });
   });
 });
 
-router.put("/:id", multer({storage: storage}).single("image"), (req, res, next) => {
+router.put("/:id", checkAuth, multer({storage: storage}).single("image"), (req, res, next) => {
   let imagePath = req.body.imagePath
   if(req.file){
     const url = req.protocol + '://' + req.get("host");
-    imagePath = url + "/images/" + req.file.filename
+    imagePath = url + "/images/" + req.file.filename;
   }
+
+  if (!imagePath) {
+    return res.status(400).json({ message: "Image upload failed" });
+  }
+
   const post = new Post({
     _id: req.body.id,
     title: req.body.title,
     content: req.body.content,
     imagePath: imagePath
   })
-  Post.updateOne({_id: req.params.id}, post).then(result=>{
+  Post.updateOne({_id: req.params.id}, post).then(() => {
     res.status(200).json({message:'Update successful!'});
+  }).catch(() => {
+    res.status(500).json({message: "Couldn't update post!"});
   });
-})
+});
 
 router.get("",(req,res,next)=>{
   const pageSize = +req.query.pagesize;
   const currentPage = +req.query.page;
-  const postQuery = Post.find();
   let fetchedPosts;
-  if(pageSize && currentPage){
-    postQuery.skip(pageSize*(currentPage + 1)).limit(pageSize);
 
-  }
-  postQuery.find()
-  .then(documents => {
-    fetchedPosts= documents;
-    return Post.count();
+  Post.find(pageSize, currentPage)
+  .then((documents) => {
+    fetchedPosts = documents;
+    return Post.countDocuments();
   }).then(count => {
     res.status(200).json({
       message:'Post fetched succesfully',
       posts:fetchedPosts,
       maxPosts: count
     });
+  }).catch(() => {
+    res.status(500).json({ message: "Fetching posts failed!" });
   });
 });
 
@@ -94,17 +101,22 @@ router.get("/:id",(req,res,next)=>{
     if(post){
       res.status(200).json(post);
     } else{
-    res.status(400).json({message:"Post not found!"});
-  }});
+      res.status(404).json({message:"Post not found!"});
+    }
+  }).catch(() => {
+    res.status(500).json({ message: "Fetching post failed!" });
+  });
 });
 
-router.delete("/:id",(req,res,next)=>{
-  console.log(req.params);
+router.delete("/:id", checkAuth, (req,res,next)=>{
   Post.deleteOne({_id: req.params.id}).then(result=>{
-    console.log(result);
+    if (!result.changes) {
+      return res.status(404).json({ message: "Post not found!" });
+    }
+    return res.status(200).json({message:"Post deleted"});
+  }).catch(() => {
+    res.status(500).json({message: "Deleting post failed"});
   });
-  res.status(200).json({message:"Post deleted"});
-})
+});
 
 module.exports = router;
-
