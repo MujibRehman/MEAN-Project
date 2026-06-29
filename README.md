@@ -56,3 +56,22 @@ npm run build
 
 - The backend creates the SQLite database and required tables automatically on startup.
 - The frontend API base URL is configured through Angular environment files instead of hardcoded service URLs.
+
+## Features
+
+- Angular 13 frontend
+- Express.js backend API
+- Local SQLite database
+- Environment-based configuration
+- Separate frontend and backend development servers
+
+## Tech Stack
+
+- Frontend: Angular 13, TypeScript, HTML, CSS
+- Backend: Node.js, Express.js
+- Database: SQLite
+- Tools: npm, VS Code
+
+## Project Purpose
+
+This project was built as a full-stack learning project to understand frontend-backend communication, API development, local database usage, and Angular application structure.
