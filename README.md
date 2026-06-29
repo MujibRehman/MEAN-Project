@@ -1,4 +1,4 @@
-# Mean Course
+# # Angular + Express + SQLite Full-Stack App
 
 This project contains:
 
