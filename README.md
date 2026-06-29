@@ -1,4 +1,4 @@
-# Meancourse
+# Mean Course
 
 This project contains:
 
